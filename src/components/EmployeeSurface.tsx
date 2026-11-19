@@ -231,9 +231,9 @@ export const EmployeeSurface: React.FC<EmployeeSurfaceProps> = ({
         </div>
       </div>
 
-      {/* Right Column: Realistic Mobile PWA Shell */}
-      <div className="mx-auto w-full max-w-[410px] lg:col-span-7">
-        <div className="relative overflow-hidden rounded-[40px] border border-slate-200/80 bg-[#F8FAFC] lg:phone-bezel">
+      {/* Right Column: Native Full-Screen on Phones, Realistic Mobile Bezel on Desktop */}
+      <div className="mx-auto w-full lg:col-span-7 lg:max-w-[410px]">
+        <div className="relative bg-[#F8FAFC] lg:overflow-hidden lg:rounded-[40px] lg:border lg:border-slate-200/80 lg:phone-bezel">
           {/* Simulated Phone Status Bar (Desktop showcase only) */}
           <div className="hidden items-center justify-between bg-[#F8FAFC] px-7 pb-1 pt-3 text-[11px] font-bold text-slate-800 lg:flex">
             <span>9:41</span>
@@ -241,8 +241,8 @@ export const EmployeeSurface: React.FC<EmployeeSurfaceProps> = ({
             <span className="text-emerald-700">5G · PWA</span>
           </div>
 
-          {/* Scrollable Mobile Viewport */}
-          <div className="relative max-h-[760px] overflow-y-auto px-4 pb-24 pt-3">
+          {/* Native viewport scroll on phones; contained scroll inside bezel on desktop */}
+          <div className="relative px-1 pb-24 pt-1 lg:max-h-[760px] lg:overflow-y-auto lg:px-4 lg:pt-3">
             {/* Employee Header */}
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -827,8 +827,8 @@ export const EmployeeSurface: React.FC<EmployeeSurfaceProps> = ({
             )}
           </div>
 
-          {/* Floating Glass Pill Bottom Nav */}
-          <div className="absolute bottom-3 left-3 right-3 z-20 rounded-full border border-slate-200/80 bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur-md">
+          {/* Floating Glass Pill Bottom Nav (Fixed on real phones, absolute inside bezel on desktop) */}
+          <div className="fixed bottom-3 left-3 right-3 z-30 mx-auto max-w-md rounded-full border border-slate-200/80 bg-white/95 px-2 py-1.5 shadow-lg backdrop-blur-md lg:absolute lg:bottom-3 lg:left-3 lg:right-3 lg:max-w-none">
             <div className="grid grid-cols-4">
               {[
                 { id: 'home', label: 'Home', icon: Home },

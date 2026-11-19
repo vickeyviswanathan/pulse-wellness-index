@@ -383,7 +383,41 @@ export const EnterpriseSurface: React.FC<EnterpriseSurfaceProps> = ({
               </span>
             </div>
 
-            <div className="mt-4 overflow-x-auto">
+            {/* Mobile Stacked Department Cards (< md) */}
+            <div className="mt-4 space-y-2.5 md:hidden">
+              {tenant.departments.map((d) => {
+                const shielded = d.activeCount < 10;
+                return (
+                  <div
+                    key={d.id}
+                    className={`rounded-2xl border p-3.5 text-xs ${
+                      shielded ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200 bg-slate-50/70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-slate-900">{d.name}</span>
+                      <span className="font-mono-num font-extrabold text-slate-900">
+                        {shielded ? 'DPDP Shielded' : `${d.avgScore}/1000`}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-500">
+                      <span>{d.activeCount} / {d.totalCount} active</span>
+                      {shielded ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-amber-700">
+                          <Lock className="h-3 w-3" /> k &lt; 10 Rolled up
+                        </span>
+                      ) : (
+                        <span className="font-bold text-emerald-700">
+                          {d.participationPct}% · +{d.avgDelta} delta
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 hidden overflow-x-auto md:block">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-400">

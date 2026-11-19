@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
   Activity,
-  Building2,
-  Crown,
   Download,
-  Smartphone,
-  Stethoscope,
+  Globe,
+  LogOut,
+  Repeat,
   Wifi,
   WifiOff,
 } from 'lucide-react';
@@ -14,7 +13,6 @@ import type {
   EmployeeProfile,
   GlobalScoreWeights,
   OfflineAssessmentRecord,
-  SurfaceMode,
 } from './types/pulse';
 import {
   DEMO_EMPLOYEE_PRESETS,
@@ -22,6 +20,7 @@ import {
   INITIAL_GLOBAL_WEIGHTS,
   INITIAL_OFFLINE_QUEUE,
 } from './data/seedData';
+import { DEMO_ACCOUNTS, type DemoAccount } from './data/demoAccounts';
 import {
   loadEmployeeProfileOffline,
   loadOfflineQueue,
@@ -30,6 +29,8 @@ import {
   saveEmployeeProfileOffline,
 } from './lib/offlineDb';
 import { computeScoreFromWorkshop } from './lib/scoring';
+import { MarketingSite } from './components/MarketingSite';
+import { DemoLoginView } from './components/DemoLoginView';
 import { EmployeeSurface } from './components/EmployeeSurface';
 import { ClinicianSurface } from './components/ClinicianSurface';
 import { EnterpriseSurface } from './components/EnterpriseSurface';
@@ -40,8 +41,11 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+type AppView = 'marketing' | 'login' | 'app';
+
 export function App() {
-  const [surface, setSurface] = useState<SurfaceMode>('employee');
+  const [view, setView] = useState<AppView>('marketing');
+  const [activeAccount, setActiveAccount] = useState<DemoAccount>(DEMO_ACCOUNTS[0]);
   const [selectedPresetId, setSelectedPresetId] = useState<string>(DEMO_EMPLOYEE_PRESETS[0].id);
   const [profile, setProfile] = useState<EmployeeProfile>(DEMO_EMPLOYEE_PRESETS[0]);
   const [offlineQueue, setOfflineQueue] = useState<OfflineAssessmentRecord[]>(INITIAL_OFFLINE_QUEUE);
@@ -80,6 +84,28 @@ export function App() {
     };
   }, []);
 
+  const handleSelectDemoAccount = (acc: DemoAccount) => {
+    setActiveAccount(acc);
+    if (acc.employeePresetId) {
+      const preset = DEMO_EMPLOYEE_PRESETS.find((p) => p.id === acc.employeePresetId);
+      if (preset) {
+        setSelectedPresetId(preset.id);
+        setProfile(preset);
+        void saveEmployeeProfileOffline(preset);
+      }
+    }
+    if (acc.tenantId) {
+      setSelectedTenantId(acc.tenantId);
+    }
+    setView('app');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleQuickLaunchById = (accountId: string) => {
+    const found = DEMO_ACCOUNTS.find((a) => a.id === accountId) ?? DEMO_ACCOUNTS[0];
+    handleSelectDemoAccount(found);
+  };
+
   const handleSelectEmployeePreset = (presetId: string) => {
     const found = DEMO_EMPLOYEE_PRESETS.find((p) => p.id === presetId);
     if (!found) return;
@@ -109,7 +135,9 @@ export function App() {
   const handleSyncQueueNow = async () => {
     const pending = offlineQueue.filter((r) => !r.synced);
     const syncedList = await markAllQueuedRecordsSynced();
-    setOfflineQueue(syncedList.length > 0 ? syncedList : offlineQueue.map((r) => ({ ...r, synced: true })));
+    setOfflineQueue(
+      syncedList.length > 0 ? syncedList : offlineQueue.map((r) => ({ ...r, synced: true }))
+    );
     for (const rec of pending) applyAssessmentToEmployeeIfMatching(rec);
   };
 
@@ -124,7 +152,10 @@ export function App() {
 
   const handleOpenCustomerAdminFromSuperAdmin = (tenantId: string) => {
     setSelectedTenantId(tenantId);
-    setSurface('customer_admin');
+    const match =
+      DEMO_ACCOUNTS.find((a) => a.tenantId === tenantId) ??
+      DEMO_ACCOUNTS.find((a) => a.surface === 'customer_admin')!;
+    setActiveAccount(match);
   };
 
   const handleInstallPwa = async () => {
@@ -133,91 +164,112 @@ export function App() {
     setInstallPrompt(null);
   };
 
-  const pendingCount = offlineQueue.filter((r) => !r.synced).length;
+  if (view === 'marketing') {
+    return (
+      <MarketingSite
+        onOpenLogin={() => setView('login')}
+        onQuickLaunchAccount={handleQuickLaunchById}
+      />
+    );
+  }
+
+  if (view === 'login') {
+    return (
+      <DemoLoginView
+        onSelectAccount={handleSelectDemoAccount}
+        onBackToMarketing={() => setView('marketing')}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-slate-900">
-      {/* Crisp Editorial Top Header */}
-      <header className="no-print sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-lg">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          {/* Brand */}
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-sm">
-              <Activity className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-tight text-slate-900">PULSE</span>
-                <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800 ring-1 ring-emerald-200">
-                  INDIA PWA
+      {/* Single-Row, Clean, Role-Isolated Top Bar (100% Mobile Friendly) */}
+      <header className="no-print sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 sm:px-4">
+          {/* Brand + Signed-in Role Badge */}
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              onClick={() => setView('marketing')}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-sm"
+              title="Back to PULSE Website"
+            >
+              <Activity className="h-4 w-4" />
+            </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-sm font-extrabold text-slate-900">
+                  {activeAccount.name}
+                </span>
+                <span
+                  className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold sm:inline-block ${activeAccount.badgeColor}`}
+                >
+                  {activeAccount.roleLabel}
                 </span>
               </div>
-              <p className="text-[11px] font-medium text-slate-500">Corporate Wellness Index</p>
+              <p className="truncate text-[10px] font-medium text-slate-500">
+                {activeAccount.org}
+              </p>
             </div>
           </div>
 
-          {/* 4-Surface Switcher */}
-          <div className="flex flex-wrap items-center gap-1 rounded-2xl bg-slate-100 p-1">
-            {[
-              { id: 'employee', label: 'Employee App', icon: Smartphone },
-              { id: 'clinician', label: 'Clinician Tablet', icon: Stethoscope, badge: pendingCount },
-              { id: 'customer_admin', label: 'Customer Admin', icon: Building2 },
-              { id: 'super_admin', label: 'Super Admin', icon: Crown },
-            ].map((item) => {
-              const Icon = item.icon;
-              const active = surface === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setSurface(item.id as SurfaceMode)}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
-                    active
-                      ? 'bg-slate-900 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span>{item.label}</span>
-                  {item.badge ? (
-                    <span className="rounded-full bg-amber-400 px-1.5 text-[10px] font-extrabold text-slate-950">
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Network + Install */}
-          <div className="flex items-center gap-2">
+          {/* Right Controls: Clean & Compact on Mobile */}
+          <div className="flex shrink-0 items-center gap-1.5">
             <button
               onClick={() => setSimulatedOffline((prev) => !prev)}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-bold transition ${
+              className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[11px] font-bold transition ${
                 isOffline
                   ? 'bg-amber-100 text-amber-900 ring-1 ring-amber-300'
                   : 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
               }`}
+              title="Toggle Offline Mode"
             >
               {isOffline ? <WifiOff className="h-3.5 w-3.5" /> : <Wifi className="h-3.5 w-3.5" />}
-              {isOffline ? 'Offline' : 'Online'}
+              <span className="hidden sm:inline">{isOffline ? 'Offline' : 'Online'}</span>
             </button>
 
             {installPrompt && (
               <button
                 onClick={handleInstallPwa}
-                className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-700"
+                className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1.5 text-[11px] font-bold text-white"
               >
                 <Download className="h-3.5 w-3.5" />
-                Install PWA
+                <span className="hidden sm:inline">Install</span>
               </button>
             )}
+
+            <button
+              onClick={() => setView('login')}
+              className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-700"
+              title="Switch Demo Account"
+            >
+              <Repeat className="h-3.5 w-3.5" />
+              <span>Switch Role</span>
+            </button>
+
+            <button
+              onClick={() => setView('marketing')}
+              className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 md:inline-flex"
+              title="Back to Marketing Website"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              Website
+            </button>
+
+            <button
+              onClick={() => setView('login')}
+              className="rounded-xl border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              title="Sign Out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="px-4 pt-6">
-        {surface === 'employee' && (
+      {/* Role-Isolated Surface */}
+      <main className="px-3 pt-4 sm:px-4 sm:pt-6">
+        {activeAccount.surface === 'employee' && (
           <EmployeeSurface
             profile={profile}
             selectedPresetId={selectedPresetId}
@@ -226,7 +278,7 @@ export function App() {
             isOffline={isOffline}
           />
         )}
-        {surface === 'clinician' && (
+        {activeAccount.surface === 'clinician' && (
           <ClinicianSurface
             isOffline={isOffline}
             onToggleSimulatedOffline={() => setSimulatedOffline((p) => !p)}
@@ -235,7 +287,7 @@ export function App() {
             onSyncQueueNow={handleSyncQueueNow}
           />
         )}
-        {surface === 'customer_admin' && (
+        {activeAccount.surface === 'customer_admin' && (
           <EnterpriseSurface
             tenants={tenants}
             selectedTenantId={selectedTenantId}
@@ -243,7 +295,7 @@ export function App() {
             onUpdateTenant={handleUpdateTenant}
           />
         )}
-        {surface === 'super_admin' && (
+        {activeAccount.surface === 'super_admin' && (
           <SuperAdminSurface
             tenants={tenants}
             onAddTenant={handleAddTenant}
