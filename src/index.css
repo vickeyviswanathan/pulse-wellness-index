@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  .font-editorial {
+    font-family: 'Instrument Serif', Georgia, serif;
+  }
+
+  .font-mono-num {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes breatheOrb {
+  0%, 100% {
+    transform: scale(0.82);
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.25);
+  }
+  50% {
+    transform: scale(1.16);
+    box-shadow: 0 0 70px rgba(14, 165, 233, 0.45);
+  }
+}
+
+.animate-breathe {
+  animation: breatheOrb 6s ease-in-out infinite;
+}
+
+.card-elevated {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px -6px rgba(15, 23, 42, 0.06);
+}
+
+.phone-bezel {
+  box-shadow:
+    0 0 0 10px #0f172a,
+    0 0 0 12px #334155,
+    0 30px 70px -15px rgba(15, 23, 42, 0.35);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
